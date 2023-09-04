@@ -3,33 +3,36 @@ import {
   Box,
   Button,
   FormControl,
-  FormErrorMessage,
   FormLabel,
   Input,
   Text,
   useToast,
 } from "@chakra-ui/react";
 import { registerUser } from "../modules/fetch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Register = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
       return;
     }
     try {
-      await registerUser(
-        e.target.name.value,
-        e.target.email.value,
-        password
-      );
+      await registerUser(name, email, password);
       toast({
         title: "Registered",
         description: "You have successfully registered.",
@@ -38,44 +41,55 @@ const Register = () => {
         isClosable: true,
       });
       navigate("/");
-    } catch (e) {
-      const error = new Error(e);
+    } catch (err) {
+      const errorMessage =
+        err.message || "An error occurred. Please try again.";
       toast({
         title: "An error occurred.",
-        description: error?.message || "An error occurred. Please try again.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-    setError(error?.message || "An error occurred");
   };
 
   return (
-    <Box w="full" py={4} px={24} mx="auto" mt={8}>
-      <Text fontSize="xl" fontWeight="bold" mb={4}>
-        Register
-      </Text>
+    <Box
+      w="100%"
+      py={4}
+      px={4}
+      mx="auto"
+      mt={8}
+      maxWidth="400px" // Adjust the maximum width as needed
+    >
+      <Box textAlign="center" mb={4}>
+        <Text fontSize="3xl" fontWeight="bold">
+          Create a New Account
+        </Text>
+      </Box>
 
       <Box borderWidth="1px" borderRadius="lg" p={4}>
         <form onSubmit={handleSubmit}>
-          {error && (
-            <Box color="red.500" mb={4}>
-              {error}
-            </Box>
-          )}
-
           <FormControl isRequired>
             <FormLabel>Name</FormLabel>
-            <Input type="name" name="name" placeholder="Enter your mame" />
+            <Input
+              type="name"
+              name="name"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl isRequired mt={4}>
             <FormLabel>Email</FormLabel>
             <Input
               type="email"
               name="email"
-              placeholder="Enter your email address"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </FormControl>
 
@@ -83,7 +97,7 @@ const Register = () => {
             <FormLabel>Password</FormLabel>
             <Input
               type="password"
-              placeholder="Enter a password"
+              placeholder="New password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -93,20 +107,33 @@ const Register = () => {
             <FormLabel>Confirm Password</FormLabel>
             <Input
               type="password"
-              placeholder="Confirm your password"
+              placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            {password !== confirmPassword && (
-              <Text fontSize="xs" color="red.500">
-                The password does not match
-              </Text>
-            )}
           </FormControl>
 
-          <Button mt={6} colorScheme="teal" type="submit">
-            Register
+          {password !== confirmPassword && (
+            <Text fontSize="sm" color="red.500" mt={2}>
+              Passwords do not match
+            </Text>
+          )}
+
+          <Button mt={6} colorScheme="blue" type="submit" width="100%">
+            Sign Up
           </Button>
+
+          <Text mt={2} fontSize="sm" textAlign="center">
+            Already have an account?{" "}
+            <Link to="/" color="blue.400">
+              Log In
+            </Link>
+          </Text>
+          <Text mt={2} fontSize="sm" textAlign="center">
+            By clicking Sign Up, you agree to our <a href="#">Terms</a> and
+            acknowledge that you have read our <a href="#">Data Policy</a>,
+            including our <a href="#">Cookie Use Policy</a>.
+          </Text>
         </form>
       </Box>
     </Box>

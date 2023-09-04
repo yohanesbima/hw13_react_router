@@ -7,6 +7,12 @@ const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const app = express();
+require('dotenv').config();
+
+// Add Prisma query logging
+prisma.$on('query', (e) => {
+  console.log(e);
+});
 
 
 function authenticateTokenMiddleware(req, res, next) {
@@ -49,7 +55,20 @@ const upload = multer({
 
 app.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
+  console.log('Received registration request with email:', email);
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: email },
+  });
+
+  if (existingUser) {
+    console.log('User with email', email, 'already exists in the database');
+    return res.status(400).json({ message: "User already exists Udah ada" });
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
+  console.log('Hashed password for user', email);
+
   try {
     const { password: passwordDB, ...user } = await prisma.user.create({
       data: {
@@ -58,12 +77,14 @@ app.post("/register", async (req, res) => {
         password: hashedPassword,
       },
     });
-    res.json({ user });
-  }
-  catch (err) {
-    res.status(400).json({ message: "User already exists" });
+    console.log('User', email, 'successfully registered');
+    res.json({ message: "Register success", user });
+  } catch (err) {
+    console.error('Error while registering user', email, err);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 app.post("/login", async (req, res) => {
   try {
@@ -77,7 +98,7 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);
-    res.json({ token });
+    res.json({ message: "Login success", token });
 
   }
   catch (err) {
@@ -101,7 +122,7 @@ app.post("/books", authenticateTokenMiddleware, upload.single('image'), async (r
         image: req.file.path // add the path to the uploaded image to the book data
       },
     });
-    res.json({ book });
+    res.json({ message: "Book Already Created,Congrats", book });
   }
   catch (err) {
     console.log("err", err);
@@ -151,11 +172,11 @@ app.delete("/books/:id", authenticateTokenMiddleware, async (req, res) => {
     const book = await prisma.book.delete({
       where: { id: Number(id) },
     });
-    res.json({ book });
+    res.json({ message: "Book Already Deleted", book });
   }
   catch (e) {
     console.log(e);
-    res.status(400).json({ message: "Something went wrong" });
+    res.status(400).json({ message: "Something went wrong or Maybe Book is not Exist" });
   }
 });
 
